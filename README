@@ -1,0 +1,438 @@
+# OHMeshBridge
+
+Bridge Meshtastic → OpenHAB per il controllo remoto degli Item tramite rete LoRa.
+
+OHMeshBridge permette di inviare comandi da un nodo Meshtastic remoto verso OpenHAB utilizzando un nodo router Meshtastic collegato via WiFi.
+
+## Architettura
+
+```
+Nodo Meshtastic remoto
+        |
+        | LoRa
+        |
+Router Meshtastic (Heltec)
+        |
+        | WiFi / TCP API
+        |
+OHMeshBridge (Python)
+        |
+        | REST API
+        |
+OpenHAB
+```
+
+## Funzionamento
+
+Un utente autorizzato invia un messaggio Meshtastic:
+
+```
+oh rcbo on
+```
+
+OHMeshBridge:
+
+1. riceve il messaggio dal nodo Meshtastic;
+2. verifica che il mittente sia autorizzato;
+3. interpreta il comando;
+4. invia il comando a OpenHAB;
+5. legge lo stato aggiornato dell'Item;
+6. restituisce la risposta al nodo remoto.
+
+Esempio:
+
+```
+Nodo:
+oh rcbo on
+
+Risposta:
+✓ RCBO=ON
+```
+
+---
+
+# Installazione
+
+Percorso installazione:
+
+```
+/etc/openhab/ohmeshbridge/
+```
+
+Struttura:
+
+```
+ohmeshbridge/
+|
+├── bridge.py
+├── config.yaml
+|
+├── ohmeshbridge/
+|   ├── command_engine.py
+|   ├── config.py
+|   ├── openhab.py
+|   └── logger.py
+|
+└── logs/
+    ├── ohmeshbridge.log
+    └── audit.log
+```
+
+---
+
+# Configurazione
+
+File:
+
+```
+config.yaml
+```
+
+Esempio:
+
+```yaml
+meshtastic:
+  host: "IP_ROUTER_MESHTASTIC"
+
+openhab:
+  url: "http://IP_OPENHAB:8080"
+
+logging:
+  level: INFO
+  technical_log: logs/ohmeshbridge.log
+  audit_log: logs/audit.log
+
+security:
+  private_only: true
+
+users:
+  "!NODE_ID":
+    name: NomeUtente
+    role: admin
+```
+
+---
+
+# Sicurezza
+
+Con:
+
+```yaml
+security:
+  private_only: true
+```
+
+il bridge accetta solo comandi provenienti dai nodi presenti nella sezione:
+
+```yaml
+users:
+```
+
+Esempio:
+
+```yaml
+users:
+  "!6984de04":
+    name: Mario
+    role: admin
+```
+
+Un nodo non presente viene ignorato.
+
+---
+
+# Comandi
+
+Tutti i comandi iniziano con:
+
+```
+oh
+```
+
+## Stato Item
+
+È sufficiente indicare il comando:
+
+```
+oh rcbo
+```
+
+equivalente a:
+
+```
+oh rcbo status
+```
+
+---
+
+# Sintassi generale
+
+```
+oh <comando>
+oh <comando> <valore>
+```
+
+Esempi:
+
+```
+oh luce cucina on
+
+oh clima sala 21.5
+
+oh tapparella up
+```
+
+---
+
+# Tipi OpenHAB supportati
+
+## Switch
+
+Comandi:
+
+```
+ON
+OFF
+```
+
+Esempio:
+
+```
+oh rcbo on
+```
+
+---
+
+## Number
+
+Accetta valori numerici.
+
+Esempio:
+
+```
+oh temperatura sala 21.5
+```
+
+---
+
+## String
+
+Accetta testo libero.
+
+Esempio:
+
+```
+oh display Casa pronta
+```
+
+---
+
+## Contact
+
+Solo lettura.
+
+Esempio:
+
+```
+oh porta ingresso
+```
+
+---
+
+## Dimmer
+
+Comandi disponibili:
+
+```
+ON
+OFF
+INCREASE
+DECREASE
+0-100
+```
+
+Esempio:
+
+```
+oh luce salotto 40
+```
+
+---
+
+## Rollershutter
+
+Comandi disponibili:
+
+```
+UP
+DOWN
+STOP
+0-100
+```
+
+Esempio:
+
+```
+oh tapparella camera down
+```
+
+---
+
+# Configurazione comandi
+
+I comandi sono definiti tramite YAML.
+
+Esempio:
+
+```yaml
+commands:
+
+  luce cucina:
+    item: Cucina_Luce
+    type: switch
+    description: Luce cucina
+
+  clima sala:
+    item: Sala_SetPoint
+    type: number
+    description: Temperatura soggiorno
+```
+
+Sono supportati alias composti da più parole:
+
+```
+oh luce cucina on
+```
+
+---
+
+# Help
+
+Dal nodo remoto:
+
+```
+oh help
+```
+
+mostra i comandi disponibili.
+
+---
+
+# Gestione servizio systemd
+
+Nome servizio:
+
+```
+ohmeshbridge.service
+```
+
+## Avvio
+
+```bash
+sudo systemctl start ohmeshbridge
+```
+
+## Arresto
+
+```bash
+sudo systemctl stop ohmeshbridge
+```
+
+## Stato
+
+```bash
+sudo systemctl status ohmeshbridge
+```
+
+## Avvio automatico
+
+```bash
+sudo systemctl enable ohmeshbridge
+```
+
+---
+
+# Log
+
+I log sono salvati nella directory:
+
+```
+logs/
+```
+
+File:
+
+```
+ohmeshbridge.log
+audit.log
+```
+
+La rotazione automatica è gestita da:
+
+```
+/etc/logrotate.d/ohmeshbridge
+```
+
+Configurazione:
+
+* rotazione giornaliera;
+* conservazione 14 giorni;
+* compressione dei vecchi log.
+
+---
+
+# Troubleshooting
+
+## Il nodo riceve ma OpenHAB non esegue
+
+Controllare:
+
+```bash
+sudo systemctl status ohmeshbridge
+```
+
+e verificare i log:
+
+```bash
+tail -f logs/ohmeshbridge.log
+```
+
+---
+
+## Il comando viene rifiutato
+
+Controllare che il Node ID sia presente:
+
+```yaml
+users:
+  "!NODE_ID":
+```
+
+---
+
+## Test connessione Meshtastic
+
+Verificare che il router sia raggiungibile:
+
+```
+ping IP_ROUTER_MESHTASTIC
+```
+
+---
+
+# Versione
+
+OHMeshBridge V1
+
+Funzioni principali:
+
+* Meshtastic TCP API
+* OpenHAB REST API
+* autorizzazione nodi
+* comandi YAML configurabili
+* supporto Switch, Number, String, Contact, Dimmer, Rollershutter
+* servizio systemd
+* logging e rotazione automatica
+
+```
+```

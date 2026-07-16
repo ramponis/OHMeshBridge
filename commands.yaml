@@ -1,0 +1,34 @@
+commands:
+
+  rcbo:
+    item: Rcbo_Power
+    type: switch
+    description: Riarmo RCBO
+    read_only: false
+
+  luce cucina:
+    item: cucina_Power
+    type: switch
+    description: Luce cucina
+    read_only: false
+
+  temperatura:
+    item: Temperatura_Sala
+    type: number
+    description: Temperatura sala
+    read_only: true
+
+  clima:
+    item: Clima_Setpoint
+    type: number
+    read_only: false
+
+  display:
+    item: Display_Text
+    type: string
+    read_only: false
+
+  tapparella:
+    item: tapparella
+    type: rollershutter
+    read_only: false

@@ -1,0 +1,23 @@
+meshtastic:
+  host: "192.168.0.172"
+
+openhab:
+  url: "http://192.168.0.9:8080"
+  timeout: 5
+
+logging:
+  level: INFO
+  technical_log: logs/ohmeshbridge.log
+  audit_log: logs/audit.log
+  max_size_mb: 5
+  backups: 10
+  
+security:
+  private_only: true
+
+users:
+  "!6984de04":
+    name: Steno
+    role: admin
+
+
