@@ -530,4 +530,11 @@ Funzioni principali:
 - rotazione automatica dei log
 
 ```
+
+# Protocolli supportati
+
+| Protocollo | Stato | Comando | Tipi supportati |
+|------------|:-----:|:-------:|-----------------|
+| OpenHAB | ✅ | ✅ | Switch, Number, String, Contact, Dimmer, Rollershutter |
+| Tasmota | ✅ | ✅ | Switch |
 ```
