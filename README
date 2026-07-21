@@ -529,12 +529,25 @@ Funzioni principali:
 - logging tecnico e audit
 - rotazione automatica dei log
 
-```
-
 # Protocolli supportati
 
 | Protocollo | Stato | Comando | Tipi supportati |
 |------------|:-----:|:-------:|-----------------|
 | OpenHAB | ✅ | ✅ | Switch, Number, String, Contact, Dimmer, Rollershutter |
 | Tasmota | ✅ | ✅ | Switch |
-```
+
+# Funzionalità
+
+| Funzione | Disponibile |
+|----------|:-----------:|
+| Meshtastic TCP API | ✅ |
+| OpenHAB REST API | ✅ |
+| Tasmota HTTP API | ✅ |
+| Comandi YAML | ✅ |
+| Alias multi-parola | ✅ |
+| Controllo accessi | ✅ |
+| Audit Log | ✅ |
+| Log tecnico | ✅ |
+| Item di monitoraggio OpenHAB | ✅ |
+| Servizio systemd | ✅ |
+| Logrotate | ✅ |
