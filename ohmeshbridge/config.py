@@ -49,3 +49,17 @@ class Config:
 
     def get_command(self, name):
         return self.command_list.get(name.lower())
+
+    @property
+    def command_item(self):
+        return self.config["openhab"].get(
+            "command_item",
+            "Meshtastic_Command"
+        )
+
+    @property
+    def response_item(self):
+        return self.config["openhab"].get(
+            "response_item",
+            "Meshtastic_Response"
+        )

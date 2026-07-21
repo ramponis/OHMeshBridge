@@ -45,13 +45,14 @@ def main():
         )
 
 
-        # accetta solo comandi OH
+        # Accetta solo comandi OH
 
         if not text.lower().startswith("oh"):
+
             return None
 
 
-        # controllo autorizzazione
+        # Controllo autorizzazione
 
         if sender not in cfg.users:
 
@@ -73,6 +74,24 @@ def main():
         )
 
 
+        # Log comando ricevuto su OpenHAB
+
+        try:
+
+            openhab.send_command(
+                cfg.command_item,
+                text
+            )
+
+        except Exception:
+
+            logger.exception(
+                "Unable to update command item"
+            )
+
+
+        # Esecuzione comando
+
         response = engine.execute(text)
 
 
@@ -81,8 +100,23 @@ def main():
         )
 
 
-        return response
+        # Log risposta su OpenHAB
 
+        try:
+
+            openhab.send_command(
+                cfg.response_item,
+                response or ""
+            )
+
+        except Exception:
+
+            logger.exception(
+                "Unable to update response item"
+            )
+
+
+        return response
 
 
     mesh = MeshtasticClient(

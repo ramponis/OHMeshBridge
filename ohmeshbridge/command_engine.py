@@ -1,3 +1,6 @@
+from ohmeshbridge.tasmota import TasmotaClient
+
+
 class CommandEngine:
 
     def __init__(self, config, openhab, logger=None):
@@ -6,18 +9,62 @@ class CommandEngine:
         self.openhab = openhab
         self.logger = logger
 
+        self.tasmota = TasmotaClient(
+            logger=logger
+        )
 
-    def _send_and_readback(self, command, item, value):
 
-        ok = self.openhab.send_command(item, value)
+    def _send_and_readback(
+        self,
+        command,
+        definition,
+        value
+    ):
+
+        item = definition["item"]
+
+        protocol = definition.get(
+            "protocol",
+            "openhab"
+        ).lower()
+
+
+        # -------------------------
+        # TASMOTA
+        # -------------------------
+
+        if protocol == "tasmota":
+
+            if not self.tasmota.send_switch(
+                item,
+                value
+            ):
+                return "✗ Errore Tasmota"
+
+            return (
+                f"✓ {command.upper()}="
+                f"{value.upper()}"
+            )
+
+
+        # -------------------------
+        # OPENHAB
+        # -------------------------
+
+        ok = self.openhab.send_command(
+            item,
+            value
+        )
 
         if not ok:
             return "✗ Errore OpenHAB"
+
 
         state = self.openhab.get_state(item)
 
         if state is None:
             return "✓ OK"
+
 
         return f"✓ {command.upper()}={state}"
 
@@ -27,6 +74,7 @@ class CommandEngine:
         try:
             float(value)
             return True
+
         except ValueError:
             return False
 
@@ -89,11 +137,16 @@ class CommandEngine:
 
         item = definition["item"]
         item_type = definition["type"].lower()
-        read_only = definition.get("read_only", False)
+
+        read_only = definition.get(
+            "read_only",
+            False
+        )
 
 
         if action == "":
             action = "status"
+
 
 
         # -------------------------
@@ -102,12 +155,39 @@ class CommandEngine:
 
         if action.lower() == "status":
 
-            value = self.openhab.get_state(item)
+            protocol = definition.get(
+                "protocol",
+                "openhab"
+            ).lower()
 
-            if value is None:
-                return "✗ Errore OpenHAB"
 
-            return f"ℹ {command.upper()}={value}"
+            if protocol == "openhab":
+
+                value = self.openhab.get_state(
+                    item
+                )
+
+                if value is None:
+                    return "✗ Errore OpenHAB"
+
+                return (
+                    f"ℹ {command.upper()}="
+                    f"{value}"
+                )
+
+
+            if protocol == "tasmota":
+
+                value = self.tasmota.get_switch(item)
+
+                if value is None:
+                    return "✗ Errore Tasmota"
+
+                return (
+                    f"ℹ {command.upper()}="
+                    f"{value}"
+                )
+
 
 
         # -------------------------
@@ -118,6 +198,7 @@ class CommandEngine:
             return "✗ Item in sola lettura"
 
 
+
         # -------------------------
         # SWITCH
         # -------------------------
@@ -126,14 +207,20 @@ class CommandEngine:
 
             cmd = action.upper()
 
-            if cmd not in ["ON", "OFF"]:
+            if cmd not in [
+                "ON",
+                "OFF"
+            ]:
+
                 return "✗ Valori ammessi: ON OFF"
+
 
             return self._send_and_readback(
                 command,
-                item,
+                definition,
                 cmd
             )
+
 
 
         # -------------------------
@@ -145,11 +232,13 @@ class CommandEngine:
             if not self._validate_number(action):
                 return "✗ Valore numerico non valido"
 
+
             return self._send_and_readback(
                 command,
-                item,
+                definition,
                 action
             )
+
 
 
         # -------------------------
@@ -160,9 +249,10 @@ class CommandEngine:
 
             return self._send_and_readback(
                 command,
-                item,
+                definition,
                 action
             )
+
 
 
         # -------------------------
@@ -172,6 +262,7 @@ class CommandEngine:
         if item_type == "contact":
 
             return "✗ Contact solo lettura"
+
 
 
         # -------------------------
@@ -191,7 +282,7 @@ class CommandEngine:
 
                 return self._send_and_readback(
                     command,
-                    item,
+                    definition,
                     cmd
                 )
 
@@ -206,9 +297,10 @@ class CommandEngine:
 
             return self._send_and_readback(
                 command,
-                item,
+                definition,
                 action
             )
+
 
 
         # -------------------------
@@ -227,7 +319,7 @@ class CommandEngine:
 
                 return self._send_and_readback(
                     command,
-                    item,
+                    definition,
                     cmd
                 )
 
@@ -242,7 +334,7 @@ class CommandEngine:
 
             return self._send_and_readback(
                 command,
-                item,
+                definition,
                 action
             )
 
@@ -266,10 +358,13 @@ class CommandEngine:
             )
 
             if desc:
+
                 result.append(
                     f"{name} - {desc}"
                 )
+
             else:
+
                 result.append(name)
 
 
