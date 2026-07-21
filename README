@@ -1,34 +1,41 @@
 # OHMeshBridge
 
-# OHMeshBridge
+Bridge **Meshtastic → OpenHAB / Tasmota** per il controllo remoto di dispositivi domotici tramite rete LoRa.
 
-Bridge Meshtastic → OpenHAB e Tasmota per il controllo remoto di dispositivi tramite rete LoRa.
+OHMeshBridge è un bridge Python che permette di inviare comandi da nodi Meshtastic remoti verso sistemi di automazione domestica.
 
-OHMeshBridge permette di inviare comandi da un nodo Meshtastic remoto verso OpenHAB oppure direttamente verso dispositivi Tasmota utilizzando un nodo router Meshtastic collegato via WiFi.
+I comandi vengono definiti tramite configurazione YAML e possono essere indirizzati verso diversi protocolli:
 
-Le destinazioni vengono configurate tramite file YAML, scegliendo il protocollo da utilizzare per ogni comando.
+* OpenHAB tramite REST API
+* Tasmota tramite HTTP API
 
-## Architettura
+---
+
+# Architettura
 
 ```
 Nodo Meshtastic remoto
-        │
-        │ LoRa
-        │
-Router Meshtastic (Heltec)
-        │
-        │ WiFi / TCP API
-        │
+        |
+        | LoRa
+        |
+Router Meshtastic (WiFi)
+        |
+        | TCP API
+        |
 OHMeshBridge (Python)
-     │            │
- REST API      HTTP API
-     │            │
- OpenHAB      Tasmota
+        |
+        +----------------+
+        |                |
+        | REST API       | HTTP API
+        |                |
+     OpenHAB         Tasmota
 ```
 
-## Funzionamento
+---
 
-Un utente autorizzato invia un messaggio Meshtastic:
+# Funzionamento
+
+Un nodo Meshtastic autorizzato invia un comando:
 
 ```
 oh rcbo on
@@ -37,11 +44,12 @@ oh rcbo on
 OHMeshBridge:
 
 1. riceve il messaggio dal nodo Meshtastic;
-2. verifica che il mittente sia autorizzato;
-3. interpreta il comando;
-4. invia il comando al protocollo configurato (OpenHAB o Tasmota);
-5. legge lo stato aggiornato del dispositivo;
-6. restituisce la risposta al nodo remoto.
+2. verifica l'autorizzazione del mittente;
+3. identifica il comando tramite configurazione YAML;
+4. seleziona il protocollo configurato;
+5. invia il comando al dispositivo;
+6. legge lo stato quando disponibile;
+7. restituisce la risposta al nodo remoto.
 
 Esempio:
 
@@ -55,9 +63,27 @@ Risposta:
 
 ---
 
+# Funzionalità
+
+| Funzione                          | Stato |
+| --------------------------------- | :---: |
+| Meshtastic TCP API                |   ✅   |
+| OpenHAB REST API                  |   ✅   |
+| Tasmota HTTP API                  |   ✅   |
+| Configurazione YAML               |   ✅   |
+| Alias multi-parola                |   ✅   |
+| Controllo accessi nodi            |   ✅   |
+| Audit log                         |   ✅   |
+| Logging tecnico                   |   ✅   |
+| Monitoraggio tramite Item OpenHAB |   ✅   |
+| Servizio systemd                  |   ✅   |
+| Rotazione log                     |   ✅   |
+
+---
+
 # Installazione
 
-Percorso installazione:
+Percorso consigliato:
 
 ```
 /etc/openhab/ohmeshbridge/
@@ -67,19 +93,19 @@ Struttura:
 
 ```
 ohmeshbridge/
-│
+|
 ├── bridge.py
 ├── config.yaml
 ├── commands.yaml
-│
+|
 ├── ohmeshbridge/
-│   ├── command_engine.py
-│   ├── config.py
-│   ├── logger.py
-│   ├── meshtastic.py
-│   ├── openhab.py
-│   └── tasmota.py
-│
+|   ├── command_engine.py
+|   ├── config.py
+|   ├── logger.py
+|   ├── meshtastic.py
+|   ├── openhab.py
+|   └── tasmota.py
+|
 └── logs/
     ├── ohmeshbridge.log
     └── audit.log
@@ -89,11 +115,7 @@ ohmeshbridge/
 
 # Configurazione
 
-File:
-
-```
-config.yaml
-```
+## config.yaml
 
 Esempio:
 
@@ -101,22 +123,28 @@ Esempio:
 meshtastic:
   host: "IP_ROUTER_MESHTASTIC"
 
+
 openhab:
   url: "http://IP_OPENHAB:8080"
+
   command_item: Meshtastic_Command
   response_item: Meshtastic_Response
+
 
 logging:
   level: INFO
   technical_log: logs/ohmeshbridge.log
   audit_log: logs/audit.log
 
+
 security:
   private_only: true
 
+
 users:
+
   "!NODE_ID":
-    name: NomeUtente
+    name: Mario
     role: admin
 ```
 
@@ -124,14 +152,7 @@ users:
 
 # Sicurezza
 
-Con:
-
-```yaml
-security:
-  private_only: true
-```
-
-il bridge accetta solo comandi provenienti dai nodi presenti nella sezione:
+OHMeshBridge accetta comandi solamente dai nodi presenti nella sezione:
 
 ```yaml
 users:
@@ -141,6 +162,7 @@ Esempio:
 
 ```yaml
 users:
+
   "!6984de04":
     name: Mario
     role: admin
@@ -152,84 +174,105 @@ Un nodo non presente viene ignorato.
 
 # Configurazione comandi
 
-I comandi sono definiti tramite YAML.
+I comandi sono definiti nel file:
 
-Ogni comando può utilizzare un protocollo differente.
+```
+commands.yaml
+```
 
-Se `protocol` non è specificato viene utilizzato automaticamente:
+Ogni comando può specificare il protocollo da utilizzare.
+
+Se `protocol` non viene indicato viene utilizzato:
 
 ```yaml
 protocol: openhab
 ```
 
-# Protocolli supportati
+---
 
-## OpenHAB
+# Protocollo OpenHAB
 
-Supporto completo tramite REST API.
-
-- lettura stato;
-- invio comandi.
-
-## Tasmota
-
-Supporto tramite interfaccia HTTP.
-
-Per gli Switch sono disponibili:
-
-- lettura stato (`Power`);
-- accensione (`Power On`);
-- spegnimento (`Power Off`).
-
-### OpenHAB
+Esempio:
 
 ```yaml
 commands:
 
   rcbo:
+
     item: Rcbo_Power
     type: switch
     protocol: openhab
     description: Riarmo RCBO
 ```
 
-### Tasmota
+Il comando:
+
+```
+oh rcbo on
+```
+
+esegue:
+
+```
+OpenHAB REST API
+```
+
+---
+
+# Protocollo Tasmota
+
+Esempio:
 
 ```yaml
 commands:
 
   luce giardino:
+
     item: 192.168.1.25
     type: switch
     protocol: tasmota
     description: Luce giardino
 ```
 
-Nel protocollo `tasmota` il campo `item` contiene l'indirizzo IP del dispositivo.
+Il campo `item` contiene l'indirizzo IP del dispositivo.
 
-Sono supportati alias composti da più parole:
+Comandi supportati:
+
+```
+ON
+OFF
+STATUS
+```
+
+Esempio:
 
 ```
 oh luce giardino on
 ```
 
-## Stato Item
-
-È sufficiente indicare il comando:
+invia:
 
 ```
-oh rcbo
+http://192.168.1.25/cm?cmnd=Power%20On
 ```
 
-equivalente a:
+Richiesta stato:
 
 ```
-oh rcbo status
+oh luce giardino
+```
+
+Risposta:
+
+```
+ℹ LUCE GIARDINO=ON
 ```
 
 ---
 
-# Sintassi generale
+# Sintassi comandi
+
+Formato generale:
 
 ```
 oh <comando>
@@ -239,51 +282,44 @@ oh <comando> <valore>
 Esempi:
 
 ```
-oh luce cucina on
+oh rcbo on
 
-oh clima sala 21.5
+oh temperatura sala 21.5
 
 oh tapparella up
+
+oh luce giardino off
 ```
 
 ---
 
-# Tipi OpenHAB supportati
+# Tipi supportati
 
 ## Switch
 
-Comandi:
+Valori:
 
 ```
 ON
 OFF
 ```
 
-Esempio:
-
-```
-oh rcbo on
-```
-
 ---
 
 ## Number
 
-Accetta valori numerici.
-
-Esempio:
+Valori numerici:
 
 ```
-oh temperatura sala 21.5
+21
+21.5
 ```
 
 ---
 
 ## String
 
-Accetta testo libero.
-
-Esempio:
+Testo libero:
 
 ```
 oh display Casa pronta
@@ -295,17 +331,11 @@ oh display Casa pronta
 
 Solo lettura.
 
-Esempio:
-
-```
-oh porta ingresso
-```
-
 ---
 
 ## Dimmer
 
-Comandi disponibili:
+Valori:
 
 ```
 ON
@@ -315,17 +345,11 @@ DECREASE
 0-100
 ```
 
-Esempio:
-
-```
-oh luce salotto 40
-```
-
 ---
 
 ## Rollershutter
 
-Comandi disponibili:
+Valori:
 
 ```
 UP
@@ -334,35 +358,22 @@ STOP
 0-100
 ```
 
-Esempio:
-
-```
-oh tapparella camera down
-```
-
 ---
 
-# Configurazione comandi
+# Alias multi-parola
 
-I comandi sono definiti tramite YAML.
-
-Esempio:
+Sono supportati comandi composti:
 
 ```yaml
 commands:
 
   luce cucina:
+
     item: Cucina_Luce
     type: switch
-    description: Luce cucina
-
-  clima sala:
-    item: Sala_SetPoint
-    type: number
-    description: Temperatura soggiorno
 ```
 
-Sono supportati alias composti da più parole:
+Utilizzo:
 
 ```
 oh luce cucina on
@@ -370,55 +381,48 @@ oh luce cucina on
 
 ---
 
-# Help
+# Monitoraggio OpenHAB
 
-Dal nodo remoto:
+È possibile configurare due Item String:
+
+```yaml
+openhab:
+
+  command_item: Meshtastic_Command
+  response_item: Meshtastic_Response
+```
+
+Il bridge aggiorna:
 
 ```
-oh help
+Meshtastic_Command
 ```
 
-mostra i comandi disponibili.
+con:
+
+```
+oh rcbo on
+```
+
+e:
+
+```
+Meshtastic_Response
+```
+
+con:
+
+```
+✓ RCBO=ON
+```
+
+Gli aggiornamenti vengono effettuati solamente per nodi autorizzati.
 
 ---
 
-# Gestione servizio systemd
+# Logging
 
-Nome servizio:
-
-```
-ohmeshbridge.service
-```
-
-## Avvio
-
-```bash
-sudo systemctl start ohmeshbridge
-```
-
-## Arresto
-
-```bash
-sudo systemctl stop ohmeshbridge
-```
-
-## Stato
-
-```bash
-sudo systemctl status ohmeshbridge
-```
-
-## Avvio automatico
-
-```bash
-sudo systemctl enable ohmeshbridge
-```
-
----
-
-# Log
-
-I log sono salvati nella directory:
+I log vengono salvati:
 
 ```
 logs/
@@ -431,23 +435,57 @@ ohmeshbridge.log
 audit.log
 ```
 
-La rotazione automatica è gestita da:
+La rotazione viene gestita tramite:
 
 ```
 /etc/logrotate.d/ohmeshbridge
 ```
 
-Configurazione:
+Configurazione consigliata:
 
 * rotazione giornaliera;
 * conservazione 14 giorni;
-* compressione dei vecchi log.
+* compressione automatica.
+
+---
+
+# Servizio systemd
+
+Nome servizio:
+
+```
+ohmeshbridge.service
+```
+
+Avvio:
+
+```bash
+sudo systemctl start ohmeshbridge
+```
+
+Arresto:
+
+```bash
+sudo systemctl stop ohmeshbridge
+```
+
+Stato:
+
+```bash
+sudo systemctl status ohmeshbridge
+```
+
+Avvio automatico:
+
+```bash
+sudo systemctl enable ohmeshbridge
+```
 
 ---
 
 # Troubleshooting
 
-## Il nodo riceve ma OpenHAB non esegue
+## Il nodo invia ma non riceve risposta
 
 Controllare:
 
@@ -455,7 +493,7 @@ Controllare:
 sudo systemctl status ohmeshbridge
 ```
 
-e verificare i log:
+e:
 
 ```bash
 tail -f logs/ohmeshbridge.log
@@ -463,91 +501,54 @@ tail -f logs/ohmeshbridge.log
 
 ---
 
-## Il comando viene rifiutato
+## Comando rifiutato
 
-Controllare che il Node ID sia presente:
+Verificare il Node ID:
 
 ```yaml
 users:
+
   "!NODE_ID":
 ```
 
 ---
 
-## Test connessione Meshtastic
+## Test connessione router Meshtastic
 
-Verificare che il router sia raggiungibile:
-
-```
+```bash
 ping IP_ROUTER_MESHTASTIC
 ```
 
 ---
 
-# Monitoraggio
+# Roadmap
 
-È possibile configurare due Item String di OpenHAB:
+* ✅ OpenHAB support
+* ✅ Tasmota Switch support
+* ✅ Stato Tasmota
+* ⏳ MQTT
+* ⏳ Shelly
+* ⏳ ESPHome
+* ⏳ HTTPS Tasmota
+* ⏳ Gestione gruppi Meshtastic
 
-```yaml
-openhab:
-
-  command_item: Meshtastic_Command
-  response_item: Meshtastic_Response
-```
-
-Il bridge aggiorna automaticamente:
-
-```
-Meshtastic_Command
-```
-
-con l'ultimo comando ricevuto e
-
-```
-Meshtastic_Response
-```
-
-con la relativa risposta.
-
-Sono registrati esclusivamente i messaggi provenienti da nodi autorizzati e che iniziano con `oh`.
+---
 
 # Versione
 
-OHMeshBridge V1.2
+## OHMeshBridge V1.2
 
-Funzioni principali:
+Funzioni incluse:
 
-- Meshtastic TCP API
-- OpenHAB REST API
-- supporto Tasmota (lettura e scrittura Switch)
-- protocolli configurabili tramite YAML
-- autorizzazione dei nodi Meshtastic
-- comandi YAML con alias multi-parola
-- supporto Switch, Number, String, Contact, Dimmer e Rollershutter
-- monitoraggio dell'ultimo comando e della risposta tramite Item OpenHAB
-- servizio systemd
-- logging tecnico e audit
-- rotazione automatica dei log
+* Meshtastic TCP API
+* OpenHAB REST API
+* Tasmota HTTP API
+* protocolli configurabili tramite YAML
+* autorizzazione nodi
+* alias multi-parola
+* lettura stato dispositivi
+* logging tecnico e audit
+* monitoraggio OpenHAB
+* servizio systemd
 
-# Protocolli supportati
-
-| Protocollo | Stato | Comando | Tipi supportati |
-|------------|:-----:|:-------:|-----------------|
-| OpenHAB | ✅ | ✅ | Switch, Number, String, Contact, Dimmer, Rollershutter |
-| Tasmota | ✅ | ✅ | Switch |
-
-# Funzionalità
-
-| Funzione | Disponibile |
-|----------|:-----------:|
-| Meshtastic TCP API | ✅ |
-| OpenHAB REST API | ✅ |
-| Tasmota HTTP API | ✅ |
-| Comandi YAML | ✅ |
-| Alias multi-parola | ✅ |
-| Controllo accessi | ✅ |
-| Audit Log | ✅ |
-| Log tecnico | ✅ |
-| Item di monitoraggio OpenHAB | ✅ |
-| Servizio systemd | ✅ |
-| Logrotate | ✅ |
+---
