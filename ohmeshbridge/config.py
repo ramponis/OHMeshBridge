@@ -63,3 +63,68 @@ class Config:
             "response_item",
             "Meshtastic_Response"
         )
+        
+    @property
+    def client_item(self):
+        return self.config["openhab"].get(
+            "client_item",
+            "Meshtastic_Client"
+        )
+
+    @property
+    def message_item(self):
+        return self.config["openhab"].get(
+            "message_item",
+            "Meshtastic_Message"
+        )
+
+    @property
+    def send_item(self):
+        return self.config["openhab"].get(
+            "send_item",
+            "Meshtastic_Send"
+        )
+        
+    @property
+    def nodes_item(self):
+        return self.config["openhab"].get(
+            "nodes_item",
+            "Meshtastic_Nodes"
+        )
+
+    @property
+    def active_nodes_item(self):
+        return self.config["openhab"].get(
+            "active_nodes_item",
+            "Meshtastic_ActiveNodes"
+        )
+
+    @property
+    def active_timeout(self):
+        return self.config["meshtastic"].get(
+            "active_timeout",
+            1800
+        )
+
+    @property
+    def last_heard_age_item(self):
+        return self.config["openhab"].get(
+            "last_heard_age_item",
+            "Meshtastic_LastHeardAge"
+        )
+
+
+    @property
+    def last_heard_node_item(self):
+        return self.config["openhab"].get(
+            "last_heard_node_item",
+            "Meshtastic_LastHeardNode"
+        )
+
+
+    @property
+    def active_nodes_list(self):
+        return self.config["openhab"].get(
+            "active_nodes_list",
+            "Meshtastic_ActiveNodeList"
+        )

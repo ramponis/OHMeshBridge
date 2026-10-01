@@ -1,6 +1,5 @@
 import time
 
-import meshtastic
 import meshtastic.tcp_interface
 
 from pubsub import pub
@@ -146,3 +145,273 @@ class MeshtasticClient:
             self.connected = False
 
             return False
+
+
+
+    def _get_nodes(self):
+
+        """
+        Restituisce il dizionario dei nodi conosciuti.
+        Compatibile con diverse versioni della libreria Meshtastic.
+        """
+
+        if not self.interface:
+            return {}
+
+        try:
+
+            nodes = getattr(
+                self.interface,
+                "nodes",
+                None
+            )
+
+            if nodes is not None:
+                return nodes
+
+
+            return self.interface.nodesByNum
+
+
+        except Exception as e:
+
+            if self.logger:
+                self.logger.error(
+                    f"Unable to read nodes: {e}"
+                )
+
+            return {}
+
+
+
+    def get_node_count(self):
+
+        """
+        Restituisce il numero totale dei nodi conosciuti.
+        """
+
+        nodes = self._get_nodes()
+
+        return len(nodes)
+
+
+
+    def get_active_nodes(self, max_age=1800):
+
+        """
+        Restituisce i nodi attivi come lista:
+
+        [
+            ("Nome (!nodeid)", "!nodeid"),
+            ...
+        ]
+
+        Il nome viene sempre accompagnato dall'ID
+        per garantire unicità.
+        """
+
+        nodes = self._get_nodes()
+
+        if not nodes:
+            return []
+
+
+        now = time.time()
+        active_nodes = []
+
+
+        try:
+
+            for node_id, node in nodes.items():
+
+                last_heard = node.get(
+                    "lastHeard"
+                )
+
+
+                if last_heard is None:
+                    continue
+
+
+                if now - last_heard > max_age:
+                    continue
+
+
+                user = node.get(
+                    "user",
+                    {}
+                )
+
+
+                name = (
+                    user.get("longName")
+                    or user.get("shortName")
+                    or user.get("id")
+                    or node_id
+                )
+
+
+                # Sanificazione per formato openHAB Nome=Valore
+
+                name = (
+                    name.replace(",", " ")
+                        .replace("=", "-")
+                        .strip()
+                )
+
+
+                label = f"{name} ({node_id})"
+
+
+                active_nodes.append(
+                    (
+                        label,
+                        node_id
+                    )
+                )
+
+
+            # ordinamento alfabetico per visualizzazione stabile
+
+            active_nodes.sort(
+                key=lambda x: x[0].lower()
+            )
+
+
+            return active_nodes
+
+
+        except Exception as e:
+
+            if self.logger:
+                self.logger.error(
+                    f"Active nodes list error: {e}"
+                )
+
+            return []
+
+
+
+    def get_active_node_count(self, max_age=1800):
+
+        """
+        Restituisce il numero di nodi sentiti negli ultimi max_age secondi.
+        Default: 30 minuti.
+        """
+
+        nodes = self._get_nodes()
+
+        if not nodes:
+            return 0
+
+
+        now = time.time()
+        count = 0
+
+
+        try:
+
+            for node in nodes.values():
+
+                last_heard = node.get(
+                    "lastHeard"
+                )
+
+
+                if last_heard is None:
+                    continue
+
+
+                if now - last_heard <= max_age:
+                    count += 1
+
+
+            return count
+
+
+        except Exception as e:
+
+            if self.logger:
+                self.logger.error(
+                    f"Active node count error: {e}"
+                )
+
+            return 0
+
+
+
+    def get_last_heard_info(self):
+
+        """
+        Restituisce una tupla:
+
+            (last_node, last_age)
+
+        dove:
+
+            last_node = nome del nodo sentito più recentemente
+            last_age  = secondi trascorsi dall'ultimo pacchetto
+        """
+
+        nodes = self._get_nodes()
+
+        if not nodes:
+            return None, None
+
+
+        now = time.time()
+
+        newest = None
+        last_node = None
+
+
+        try:
+
+            for node_id, node in nodes.items():
+
+                last_heard = node.get(
+                    "lastHeard"
+                )
+
+
+                if last_heard is None:
+                    continue
+
+
+                if newest is None or last_heard > newest:
+
+                    newest = last_heard
+
+                    user = node.get(
+                        "user",
+                        {}
+                    )
+
+                    last_node = (
+                        user.get("longName")
+                        or user.get("shortName")
+                        or user.get("id")
+                        or node_id
+                    )
+
+
+            if newest is None:
+                return None, None
+
+
+            last_age = int(
+                now - newest
+            )
+
+
+            return last_node, last_age
+
+
+        except Exception as e:
+
+            if self.logger:
+                self.logger.error(
+                    f"Last heard info error: {e}"
+                )
+
+            return None, None
