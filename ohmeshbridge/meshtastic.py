@@ -196,7 +196,7 @@ class MeshtasticClient:
 
 
 
-    def get_active_nodes(self, max_age=1800):
+    def get_active_nodes(self, max_age=7200):
 
         """
         Restituisce i nodi attivi come lista:
@@ -292,7 +292,7 @@ class MeshtasticClient:
 
 
 
-    def get_active_node_count(self, max_age=1800):
+    def get_active_node_count(self, max_age=7200):
 
         """
         Restituisce il numero di nodi sentiti negli ultimi max_age secondi.
