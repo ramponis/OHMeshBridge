@@ -415,3 +415,30 @@ class MeshtasticClient:
                 )
 
             return None, None
+
+
+
+    def get_node_short_name(self, node_id):
+        """Return the short name of a node."""
+        try:
+            nodes = self.interface.nodes
+
+            if not nodes:
+                return node_id
+
+            node = nodes.get(node_id)
+
+            if node:
+                user = node.get("user", {})
+                short_name = user.get("shortName")
+
+                if short_name:
+                    return short_name
+
+        except Exception as e:
+            if self.logger:
+                self.logger.warning(
+                    f"Unable to get short name for {node_id}: {e}"
+                )
+
+        return node_id

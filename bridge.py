@@ -46,6 +46,14 @@ def main():
             f"Message from {sender}: {text}"
         )
 
+        # Recupera lo short name
+        short_name = mesh.get_node_short_name(sender)
+
+        openhab.send_command(
+            cfg.sender_item,
+            short_name
+        )
+
         # Registra SEMPRE il messaggio ricevuto su OpenHAB
         try:
             openhab.send_command(

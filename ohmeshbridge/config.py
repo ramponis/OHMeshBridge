@@ -128,3 +128,10 @@ class Config:
             "active_nodes_list",
             "Meshtastic_ActiveNodeList"
         )
+
+    @property
+    def sender_item(self):
+        return self.config["openhab"].get(
+            "sender_item",
+            "Meshtastic_Sender"
+        )
