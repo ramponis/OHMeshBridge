@@ -1,9 +1,20 @@
 meshtastic:
   host: "192.168.0.172"
+  active_timeout: 7200
 
 openhab:
   url: "http://192.168.0.9:8080"
   timeout: 5
+  command_item: Meshtastic_Command
+  response_item: Meshtastic_Response
+  client_item: Meshtastic_Client
+  message_item: Meshtastic_Message
+  send_item: Meshtastic_Send
+  nodes_item: Meshtastic_Nodes
+  active_nodes_item: Meshtastic_ActiveNodes
+  active_nodes_list: Meshtastic_ActiveNodeList
+  last_heard_age_item: Meshtastic_LastHeardAge
+  last_heard_node_item: Meshtastic_LastHeardNode
 
 logging:
   level: INFO
@@ -20,4 +31,7 @@ users:
     name: Steno
     role: admin
 
+  "!1ba13494":
+    name: Steno2
+    role: admin
 
