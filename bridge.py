@@ -41,84 +41,67 @@ def main():
 
     def on_message(sender, text):
 
+        # Log di qualsiasi messaggio ricevuto
         logger.info(
-            f"Command from {sender}: {text}"
+            f"Message from {sender}: {text}"
         )
 
-
-        # Accetta solo comandi OH
-
-        if not text.lower().startswith("oh"):
-
-            return None
-
-
-        # Controllo autorizzazione
-
-        if sender not in cfg.users:
-
-            logger.warning(
-                f"Unauthorized node {sender}"
-            )
-
-            return "✗ Non autorizzato"
-
-
-        user = cfg.users[sender].get(
-            "name",
-            sender
-        )
-
-
-        logger.info(
-            f"User {user}"
-        )
-
-
-        # Log comando ricevuto su OpenHAB
-
+        # Registra SEMPRE il messaggio ricevuto su OpenHAB
         try:
-
             openhab.send_command(
                 cfg.command_item,
                 text
             )
 
         except Exception:
-
             logger.exception(
-                "Unable to update command item"
+                "Unable to update message item"
             )
 
+        # Solo i messaggi che iniziano con "oh"
+        # vengono considerati comandi
+        if not text.lower().startswith("oh"):
+
+            return None
+
+        # Controllo autorizzazione solo per i comandi
+        if sender not in cfg.users:
+
+            logger.warning(
+                f"Unauthorized node {sender} attempted command: {text}"
+            )
+
+            return "✗ Non autorizzato"
+
+        user = cfg.users[sender].get(
+            "name",
+            sender
+        )
+
+        logger.info(
+            f"User {user}"
+        )
 
         # Esecuzione comando
-
         response = engine.execute(text)
-
 
         audit_logger.info(
             f"{user} | {sender} | {text} | {response}"
         )
 
-
         # Log risposta su OpenHAB
-
         try:
-
             openhab.send_command(
                 cfg.response_item,
                 response or ""
             )
 
         except Exception:
-
             logger.exception(
                 "Unable to update response item"
             )
 
-
         return response
-
 
 
     mesh = MeshtasticClient(
