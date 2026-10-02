@@ -103,7 +103,7 @@ class Config:
     def active_timeout(self):
         return self.config["meshtastic"].get(
             "active_timeout",
-            1800
+            7200
         )
 
     @property

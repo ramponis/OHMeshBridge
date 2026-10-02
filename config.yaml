@@ -1,5 +1,6 @@
 meshtastic:
   host: "192.168.0.172"
+  active_timeout: 7200
 
 openhab:
   url: "http://192.168.0.9:8080"

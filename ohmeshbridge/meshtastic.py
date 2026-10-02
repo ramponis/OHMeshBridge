@@ -296,7 +296,7 @@ class MeshtasticClient:
 
         """
         Restituisce il numero di nodi sentiti negli ultimi max_age secondi.
-        Default: 30 minuti.
+        Default: 2 ore.
         """
 
         nodes = self._get_nodes()
